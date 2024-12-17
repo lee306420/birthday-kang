@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日蛋糕</title>
+    <link rel="stylesheet" href="style11.css">
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <!-- 修改文字容器 -->
+    <canvas id="textCanvas"></canvas>  <!-- 添加新的画布用于文字动画 -->
+    
+    <div class="cake">
+        <div class="plate"></div>
+        <div class="layer layer-bottom"></div>
+        <div class="layer layer-middle"></div>
+        <div class="layer layer-top"></div>
+        <div class="icing"></div>
+        <div class="drip drip1"></div>
+        <div class="drip drip2"></div>
+        <div class="drip drip3"></div>
+        
+        <div class="candle">
+            <div class="flame"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 设置画布尺寸为窗口大小
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // 烟花粒子类
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 15 + 5;
+                this.velocity = {
+                    x: Math.cos(angle) * speed,
+                    y: Math.sin(angle) * speed
+                };
+                
+                this.alpha = 1;
+                this.friction = 0.96;
+                this.gravity = 0.10;
+                this.size = Math.random() * 4 + 3;  // 保留随机大小
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+                ctx.fill();
+            }
+
+            update() {
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                this.velocity.y += this.gravity;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= 0.01;  // 恢复原来的简单消失效果
+            }
+        }
+
+        // 在 Particle 类之前添加 Star 类
+        class Star {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height * 0.5;
+                this.size = Math.random() * 1.5 + 0.8;  // 调整这个值可以改变星星的大小范围
+                this.blinkSpeed = Math.random() * 0.02 + 0.005;
+                this.alpha = Math.random();
+                this.increasing = true;
+                this.rotation = Math.random() * Math.PI * 2; // 添加随机旋转角度
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.beginPath();
+                
+                // 画五角星
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+                    const outerX = Math.cos(angle) * (this.size * 2);
+                    const outerY = Math.sin(angle) * (this.size * 2);
+                    const innerAngle = angle + Math.PI / 5;
+                    const innerX = Math.cos(innerAngle) * this.size;
+                    const innerY = Math.sin(innerAngle) * this.size;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(outerX, outerY);
+                    } else {
+                        ctx.lineTo(outerX, outerY);
+                    }
+                    ctx.lineTo(innerX, innerY);
+                }
+                
+                ctx.closePath();
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            update() {
+                if (this.increasing) {
+                    this.alpha += this.blinkSpeed;
+                    if (this.alpha >= 1) {
+                        this.increasing = false;
+                    }
+                } else {
+                    this.alpha -= this.blinkSpeed;
+                    if (this.alpha <= 0.2) {
+                        this.increasing = true;
+                    }
+                }
+            }
+        }
+
+        class Launch {
+            constructor() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height;
+                this.targetY = canvas.height * Math.random() * 0.5;
+                this.speed = 15;
+                this.color = getRandomColor();
+                this.radius = 2;
+                
+                this.startX = this.x;
+                this.startY = this.y;
+                this.controlX = this.x + (Math.random() - 0.5) * 600;
+                this.endX = this.x + (Math.random() - 0.5) * 900;
+                this.progress = 0;
+                
+                this.totalDistance = Math.sqrt(
+                    Math.pow(this.endX - this.startX, 2) + 
+                    Math.pow(this.targetY - this.startY, 2)
+                );
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color}, 1)`;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                const prevProgress = Math.max(0, this.progress - 0.2);
+                const prevX = this.getBezierPoint(prevProgress, this.startX, this.controlX, this.endX);
+                const prevY = this.getBezierPoint(prevProgress, this.startY, this.startY - this.totalDistance/2, this.targetY);
+                ctx.lineTo(prevX, prevY);
+                const gradient = ctx.createLinearGradient(this.x, this.y, prevX, prevY);
+                gradient.addColorStop(0, `rgba(${this.color}, 0.5)`);
+                gradient.addColorStop(1, `rgba(${this.color}, 0)`);
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            getBezierPoint(t, start, control, end) {
+                return Math.pow(1 - t, 2) * start + 
+                       2 * (1 - t) * t * control + 
+                       Math.pow(t, 2) * end;
+            }
+
+            update() {
+                this.progress += 0.02;
+                this.x = this.getBezierPoint(this.progress, this.startX, this.controlX, this.endX);
+                this.y = this.getBezierPoint(this.progress, this.startY, this.startY - this.totalDistance/2, this.targetY);
+
+                if (this.progress >= 1) {
+                    createFirework(this.x, this.y);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        let particles = [];
+        let launches = [];
+        let stars = [];
+
+        function getRandomColor() {
+            const colors = [
+                '255, 255, 255',  // 白色
+                '255, 192, 203',  // 浅粉色
+                '255, 182, 193',  // 浅玫瑰色
+                '255, 105, 180',  // 热粉色
+                '255, 20, 147'    // 深粉色
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function createFirework(x, y) {
+            const particleCount = 150;  // 从200减少到150
+            const color = getRandomColor();
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 修改填充颜色为黑色，保持轻微残影效果
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 更新和绘制星星
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            launches = launches.filter(launch => {
+                launch.draw();
+                return !launch.update();
+            });
+
+            particles = particles.filter(particle => particle.alpha > 0);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const launch = new Launch();
+            launch.x = e.clientX;
+            launches.push(launch);
+        });
+
+        function autoLaunch() {
+            const launch = new Launch();
+            launch.x = Math.random() * canvas.width;
+            launches.push(launch);
+        }
+
+        setInterval(autoLaunch, 800); // 调整发射间隔为800ms
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // 重新创建星星
+            stars = [];
+            createStars();
+        });
+
+        // 添加文字粒子动画代码
+        const textCanvas = document.getElementById('textCanvas');
+        const textCtx = textCanvas.getContext('2d');
+
+        // 设置文字画布尺寸
+        textCanvas.width = window.innerWidth;
+        textCanvas.height = window.innerHeight;
+
+        // 文字粒子
+        class TextParticle {
+            constructor(x, y, delay) {
+                this.x = x;
+                this.y = y;
+                this.targetX = x;
+                this.targetY = y;
+                this.currentX = Math.random() * textCanvas.width;
+                this.currentY = Math.random() * textCanvas.height;
+                this.ease = 0.1;
+                this.size = 3;
+                this.alpha = 0; // 初始透明度为0
+                this.delay = delay; // 添加延迟属性
+                this.active = false; // 控制粒子是否开始运动
+            }
+
+            draw() {
+                textCtx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                textCtx.beginPath();
+                textCtx.arc(this.currentX, this.currentY, this.size, 0, Math.PI * 2);
+                textCtx.fill();
+            }
+
+            update() {
+                if (this.delay > 0) {
+                    this.delay--;
+                    return;
+                }
+                
+                if (!this.active) {
+                    this.active = true;
+                }
+
+                if (this.active) {
+                    this.alpha += 0.1;
+                    if (this.alpha > 1) this.alpha = 1;
+                    
+                    this.currentX += (this.targetX - this.currentX) * this.ease;
+                    this.currentY += (this.targetY - this.currentY) * this.ease;
+                }
+            }
+        }
+
+        // 文字粒子数组
+        let textParticles = [];
+
+        // 创建文字粒子
+        function createTextParticles() {
+            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+            
+            const texts = [
+                // 添加左上角的文字
+                {text: 'To 康国峰', font: '70px Arial', y: 80, x: 10, align: 'left'}, // 添加x属性和align属性
+                // 保持原有的居中文字
+                {text: '生日快乐--12.18', font: '140px 华文行楷', y: textCanvas.height/2 - 80, x: textCanvas.width/2, align: 'center'},
+                {text: 'Happy Birthday', font: '80px 华文行楷', y: textCanvas.height/2 + 60, x: textCanvas.width/2, align: 'center'}
+            ];
+            
+            textParticles = [];
+            let totalDelay = 0;
+            
+            texts.forEach((textObj, textIndex) => {
+                textCtx.font = textObj.font;
+                textCtx.fillStyle = 'white';
+                textCtx.textAlign = textObj.align; // 使用对象中定义的对齐方式
+                textCtx.textBaseline = 'middle';
+                
+                // 计算文本的总宽度
+                const textWidth = textCtx.measureText(textObj.text).width;
+                // 根据对齐方式计算起始位置
+                let startX = textObj.x;
+                if (textObj.align === 'center') {
+                    startX = textObj.x - textWidth/2;
+                }
+                
+                // 逐字绘制
+                let currentX = startX;
+                for (let i = 0; i < textObj.text.length; i++) {
+                    const char = textObj.text[i];
+                    const charWidth = textCtx.measureText(char).width;
+                    
+                    textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+                    textCtx.fillText(char, currentX + charWidth/2, textObj.y);
+                    
+                    const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
+                    const pixels = imageData.data;
+                    
+                    // 为每个���符创建粒子
+                    for(let y = 0; y < textCanvas.height; y += 2) {
+                        for(let x = 0; x < textCanvas.width; x += 2) {
+                            const index = (y * textCanvas.width + x) * 4;
+                            const alpha = pixels[index + 3];
+                            
+                            if(alpha > 128) {
+                                // 为每个字符设置递增的延迟
+                                const delay = totalDelay + Math.random() * 20;
+                                textParticles.push(new TextParticle(x, y, delay));
+                            }
+                        }
+                    }
+                    
+                    currentX += charWidth;
+                    totalDelay += 10; // 每个字符增加延迟
+                }
+                
+                totalDelay += 20; // 每行文本之间增加额外延迟
+            });
+            
+            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+        }
+
+        // 文字动画
+        let textAnimationStarted = false;
+        let cakeElement = document.querySelector('.cake');
+
+        // 添加一个函数来检查蛋糕是否完全显示
+        function startTextAnimation() {
+            // 蛋糕动画总时长约为3秒 (最后一个动画是蜡烛 animation-delay: 2.5s + 动画时长0.5s = 3s)
+            // 再加上1秒的额外延迟，总共等待4秒
+            setTimeout(() => {
+                textAnimationStarted = true;
+                createTextParticles();
+                animateText();
+            }, 4000); // 修改为4000毫秒（4秒）
+        }
+
+        // 修改文字动画相关函数
+        function animateText() {
+            if (!textAnimationStarted) return;
+            
+            requestAnimationFrame(animateText);
+            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+
+            textParticles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+        }
+
+        // 修改初始化部分
+        // 注释掉或删除原来的直接调用
+        // createTextParticles();
+        // animateText();
+
+        // 替换为
+        document.addEventListener('DOMContentLoaded', () => {
+            // 等待蛋糕显示完成后开始文字动画
+            startTextAnimation();
+        });
+
+        // 修改resize事件处理
+        window.addEventListener('resize', () => {
+            textCanvas.width = window.innerWidth;
+            textCanvas.height = window.innerHeight;
+            if (textAnimationStarted) {
+                textParticles = [];
+                createTextParticles();
+            }
+        });
+
+        // 在 animate() 调用之前初始化星星
+        function createStars() {
+            const numberOfStars = 100; // 创建100颗星星
+            for (let i = 0; i < numberOfStars; i++) {
+                stars.push(new Star());
+            }
+        }
+
+        // 在 animate() 调用之前添加这行
+        createStars();
+    </script>
+</body>
+</html>

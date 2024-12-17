@@ -1,0 +1,165 @@
+/* 在文件开头添加画布样式 */
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;  /* 改为1，让蛋糕在上层 */
+    background: transparent;  /* 背景改为透明 */
+    pointer-events: none;  /* 允许点击事件穿透到蛋糕 */
+}
+
+/* 修改 body 样式 */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;  /* 改为底部对齐 */
+    min-height: 100vh;
+    margin: 0;
+    overflow: hidden;  /* 防止出现滚动条 */
+    background: #000000;  /* 改为黑色背景 */
+}
+
+.cake {
+    position: relative;
+    width: 250px;
+    height: 200px;
+    margin-bottom: 50px;  /* 改用 margin-bottom 控制底部间距 */
+    z-index: 2;  /* 改为2，确保蛋糕在最上层 */
+}
+
+.plate {
+    position: absolute;
+    bottom: -10px;
+    left: -25px;
+    width: 300px;
+    height: 10px;
+    background: #888;  /* 调暗盘子颜色 */
+    border-radius: 50%;
+}
+
+.layer {
+    position: absolute;
+    width: 250px;
+    height: 50px;
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateY(100px);
+    animation: slideUp 0.5s forwards;
+}
+
+.layer-bottom {
+    bottom: 0;
+    background: #b1d1fe;
+    animation-delay: 0s;
+}
+
+.layer-middle {
+    bottom: 50px;
+    background: #ffcce5;
+    width: 200px;
+    left: 25px;
+    animation-delay: 0.5s;
+}
+
+.layer-top {
+    bottom: 100px;
+    background: #768de8;
+    width: 150px;
+    left: 50px;
+    animation-delay: 1s;
+}
+
+.icing {
+    position: absolute;
+    bottom: 150px;
+    left: 50px;
+    background: rgba(255, 255, 255, 0.9);
+    width: 150px;
+    height: 10px;
+    border-radius: 5px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 0.5s forwards;
+    animation-delay: 1.5s;
+}
+
+.drip {
+    position: absolute;
+    width: 10px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0 0 10px 10px;
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
+    animation-delay: 2s;
+}
+
+.drip1 { left: 65px; bottom: 140px; }
+.drip2 { left: 115px; bottom: 140px; }
+.drip3 { left: 165px; bottom: 140px; }
+
+.candle {
+    position: absolute;
+    bottom: 160px;
+    left: 115px;
+    width: 20px;
+    height: 40px;
+    background: #ffcce5;
+    border-radius: 3px;
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
+    animation-delay: 2.5s;
+    z-index: 3;
+}
+
+.flame {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 20px;
+    background: #ffa07a;
+    border-radius: 50% 50% 20% 20%;
+    animation: flicker 1s infinite alternate;
+    z-index: 4;
+}
+
+@keyframes flicker {
+    0% { transform: translateX(-50%) scale(1); }
+    100% { transform: translateX(-50%) scale(1.2); }
+}
+
+/* 添加一些悬停效果 */
+.cake:hover .flame {
+    animation: flicker 0.5s infinite alternate;
+}
+
+@keyframes slideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* 添加文字画布样式 */
+#textCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    pointer-events: none;
+}
