@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日祝福</title>
+    <script>
+        // 检查是否已登录
+        if (!sessionStorage.getItem('isLoggedIn')) {
+            window.location.href = './src/login.html';
+        }
+    </script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .page {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            transition: transform 1s ease-in-out;
+        }
+
+        #wechatPage {
+            z-index: 2;
+            background-color: #ededed;
+        }
+
+        #birthdayPage {
+            z-index: 1;
+            transform: translateY(100%);
+            visibility: hidden;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .hidden {
+            transform: translateY(-100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- 加音频元素 -->
+    <audio id="bgMusic" loop>
+        <source src="./src/静悄悄181.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="wechatPage" class="page">
+        <iframe id="wechatFrame" src="./src/particle-text.html"></iframe>
+    </div>
+    <div id="birthdayPage" class="page">
+        <iframe id="birthdayFrame" src="about:blank" data-src="./src/蛋糕.html"></iframe>
+    </div>
+
+    <script>
+        // 确保登录状态持续存在
+        sessionStorage.setItem('isLoggedIn', 'true');
+
+        // 获取音频元素并继续播放
+        const bgMusic = document.getElementById('bgMusic');
+        bgMusic.currentTime = sessionStorage.getItem('musicTime') || 0;
+        bgMusic.play().catch(error => {
+            console.log("自动播放被阻止:", error);
+        });
+
+        // 在页面关闭或跳转前保存当前播放时间
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('musicTime', bgMusic.currentTime);
+        });
+
+        // 第5秒后切换到微信消息页面
+        setTimeout(() => {
+            document.getElementById('wechatFrame').src = './src/wechat-message.html';
+        }, 5000);
+
+        // 第15.3秒后切换到生日页面
+        setTimeout(() => {
+            const birthdayPage = document.getElementById('birthdayPage');
+            const birthdayFrame = document.getElementById('birthdayFrame');
+            
+            birthdayPage.style.visibility = 'visible';
+            
+            document.getElementById('wechatPage').classList.add('hidden');
+            birthdayPage.style.transform = 'translateY(0)';
+            
+            setTimeout(() => {
+                birthdayFrame.src = birthdayFrame.getAttribute('data-src');
+            }, 1000);
+            
+        }, 15300);
+    </script>
+</body>
+</html>
